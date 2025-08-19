@@ -51,7 +51,7 @@ df['Valor_Imovel'].mean()
 df['Valor_Imovel'].median()
 
 # 15. Desvio padrão
-print(df['Valor_Imovel'].std())
+df['Valor_Imovel'].std()
 
 # 16. Valor mínimo e máximo da área construída
 df['Area_m2'].min()
