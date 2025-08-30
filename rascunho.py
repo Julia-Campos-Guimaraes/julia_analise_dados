@@ -1,0 +1,138 @@
+
+import requests
+import pandas as pd
+import time
+
+# === Autenticação ===
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU4OTcxMzUzLCJpYXQiOjE3NTYzNzkzNTMsImp0aSI6ImYxMmMzYjlmNDc0MzQxYmFhOGMzMzQwMDFjMzMzMmFlIiwidXNlcl9pZCI6IjgyIn0.ovZAHyl81GECYRq-rKDIYyvaQyUJM4Eac_ML1iP2564"
+headers = {'Authorization': f'JWT {token}'}
+
+# === 1) Buscar todos os tickers disponíveis ===
+resp_tickers = requests.get('https://laboratoriodefinancas.com/api/v1/ticker', headers=headers)
+resp_tickers.raise_for_status()
+payload = resp_tickers.json()
+
+# Normaliza a resposta para uma lista de itens
+if isinstance(payload, dict):
+    if 'results' in payload:
+        itens = payload['results']
+    elif 'dados' in payload:
+        itens = payload['dados']
+    else:
+        # caso venha um dict com outra chave, tenta usar todos os valores
+        itens = list(payload.values())
+        # achata 1 nível se necessário
+        if itens and isinstance(itens[0], list):
+            itens = itens[0]
+elif isinstance(payload, list):
+    itens = payload
+else:
+    itens = []
+
+def extrair_ticker(item):
+    if isinstance(item, dict):
+        for k in ['ticker', 'sigla', 'codigo', 'symbol', 'cd_acao', 'cd_ticker']:
+            if k in item and isinstance(item[k], str) and item[k].strip():
+                return item[k].strip().upper()
+    elif isinstance(item, str):
+        return item.strip().upper()
+    return None
+
+lista_todos_tickers = sorted({t for t in (extrair_ticker(x) for x in itens) if t})
+
+# (Opcional) Filtra tickers claramente inválidos (ex.: None, muito curtos)
+lista_todos_tickers = [t for t in lista_todos_tickers if len(t) >= 4]
+
+print(f"Total de tickers carregados: {len(lista_todos_tickers)}")
+
+# === 2) Loop no MESMO MODELO que você enviou, mas agora para todos os tickers ===
+resultados = []  # para armazenar (ticker, lucro, pl, roe)
+
+for ticker in lista_todos_tickers:
+    params = {
+        'ticker': ticker,
+        'ano_tri': '20252T',   # mantenho igual ao seu modelo
+    }
+
+    try:
+        response = requests.get('https://laboratoriodefinancas.com/api/v1/balanco',
+                                params=params, headers=headers)
+
+        if response.status_code != 200:
+            # pula tickers que não retornam 200
+            continue
+
+        response = response.json()
+        if not response or "dados" not in response or len(response["dados"]) == 0:
+            continue
+
+        dados = response["dados"][0]
+        balanco = dados.get("balanco", [])
+        if not balanco:
+            continue
+
+        df = pd.DataFrame(balanco)
+
+        # Garantir que as colunas existem
+        if not set(['conta','descricao','data_ini','valor']).issubset(df.columns):
+            continue
+
+        # Lucro Líquido (mesmo filtro do seu modelo)
+        filtro = (
+            (df["conta"] == "3.11") &
+            (df["descricao"].str.contains("^lucro", case=False, na=False)) &
+            (df["data_ini"] == "2025-01-01")
+        )
+
+        if df.loc[filtro, "valor"].empty:
+            # fallback: pega a 1ª linha de lucro com conta 3.11 caso a data específica não exista
+            filtro_alt = (
+                (df["conta"] == "3.11") &
+                (df["descricao"].str.contains("^lucro", case=False, na=False))
+            )
+            if df.loc[filtro_alt, "valor"].empty:
+                continue
+            lucro_liquido = float(pd.to_numeric(df.loc[filtro_alt, "valor"], errors='coerce').dropna().iloc[0])
+        else:
+            lucro_liquido = float(pd.to_numeric(df.loc[filtro, "valor"], errors='coerce').dropna().iloc[0])
+
+        # Patrimônio Líquido (mesmo filtro do seu modelo)
+        filtro2 = (
+            (df["conta"].astype(str).str.contains("2.0.", case=False, na=False)) &
+            (df["descricao"].str.contains("^patrim.nio", case=False, na=False))
+        )
+
+        if df.loc[filtro2, "valor"].empty:
+            continue
+
+        patrimonio_liquido = float(pd.to_numeric(df.loc[filtro2, "valor"], errors='coerce').dropna().iloc[0])
+
+        # Evita divisão por zero
+        if patrimonio_liquido == 0:
+            continue
+
+        roe = lucro_liquido / patrimonio_liquido
+
+        resultados.append({
+            "ticker": ticker,
+            "lucro_liquido": lucro_liquido,
+            "patrimonio_liquido": patrimonio_liquido,
+            "roe": roe
+        })
+
+        # imprime no formato do seu modelo
+        print(roe)
+
+        # (Opcional) pequena pausa para não sobrecarregar a API
+        time.sleep(0.15)
+
+    except Exception as e:
+        # Em produção, você pode querer logar o erro com mais detalhes
+        # print(f"Erro com {ticker}: {e}")
+        continue
+
+# === 3) DataFrame final com todos os ROEs (se quiser trabalhar depois) ===
+df_roe = pd.DataFrame(resultados).sort_values("roe", ascending=False).reset_index(drop=True)
+print(df_roe.head())
+# df_roe.to_csv("roe_todos_tickers.csv", index=False)  # opcional
+# df_roe.to_excel("roe_todos_tickers.xlsx", index=False)  # opcional
