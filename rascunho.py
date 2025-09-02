@@ -136,3 +136,95 @@ df_roe = pd.DataFrame(resultados).sort_values("roe", ascending=False).reset_inde
 print(df_roe.head())
 # df_roe.to_csv("roe_todos_tickers.csv", index=False)  # opcional
 # df_roe.to_excel("roe_todos_tickers.xlsx", index=False)  # opcional
+
+
+#### Planilhão ####
+
+import requests
+import pandas as pd
+import numpy as np
+
+token = "SEU_TOKEN_AQUI"
+headers = {'Authorization': 'JWT {}'.format(token)}
+
+params = {
+    'data_base': '2025-09-01'
+}
+
+response = requests.get('https://laboratoriodefinancas.com/api/v1/planilhao',
+                        params=params, headers=headers)
+response = response.json()
+dados = response["dados"]
+df = pd.DataFrame(dados)
+
+filtro = df["setor"] == "construção"
+tickers = df.loc[filtro, "ticker"].values
+
+# início do for loop
+lista_resultados = []
+for ticker in tickers:
+    params = {
+        'ticker': ticker,
+        'ano_tri': '20252T',
+    }
+
+    response = requests.get('https://laboratoriodefinancas.com/api/v1/balanco',
+                            params=params, headers=headers)
+    response = response.json()
+    dados = response["dados"][0]
+    balanco = dados["balanco"]
+    df = pd.DataFrame(balanco)
+
+    # Lucro Líquido
+    filtro = (
+        (df["conta"] == "3.11") &
+        (df["descricao"].str.contains("^lucro", case=False)) &
+        (df["data_ini"] == "2025-01-01")
+    )
+    lucro_liquido = df.loc[filtro, ["valor"]].iloc[0]["valor"] if not df.loc[filtro].empty else np.nan
+
+    # Patrimônio Líquido (Capital Próprio)
+    filtro2 = (
+        (df["conta"].str.contains("2.0.", case=False)) &
+        (df["descricao"].str.contains("^patrim.nio", case=False))
+    )
+    patrimonio_liquido = df.loc[filtro2, ["valor"]].iloc[0]["valor"] if not df.loc[filtro2].empty else np.nan
+
+    # ROE
+    roe = lucro_liquido / patrimonio_liquido if patrimonio_liquido not in [0, np.nan] else np.nan
+
+    # EBIT
+    filtro_ebit = (
+        (df["conta"] == "3.05") &
+        (df["descricao"].str.contains("ebit", case=False)) &
+        (df["data_ini"] == "2025-01-01")
+    )
+    ebit = df.loc[filtro_ebit, ["valor"]].iloc[0]["valor"] if not df.loc[filtro_ebit].empty else np.nan
+
+    # Empréstimos e Financiamentos (Capital de Terceiros)
+    filtro_divida = (
+        (df["conta"] == "2.0104") &
+        (df["descricao"].str.contains("empréstimos|financiamentos", case=False))
+    )
+    divida = df.loc[filtro_divida, ["valor"]].iloc[0]["valor"] if not df.loc[filtro_divida].empty else 0
+
+    # Capital Investido = PL + Dívida
+    capital_investido = patrimonio_liquido + divida if patrimonio_liquido is not np.nan else np.nan
+
+    # ROIC
+    roic = ebit / capital_investido if capital_investido not in [0, np.nan] else np.nan
+
+    # Guarda os resultados
+    resultados = {
+        "ticker": ticker,
+        "roe": roe,
+        "roic": roic
+    }
+    lista_resultados.append(resultados)
+
+# DataFrame final
+df_final = pd.DataFrame(lista_resultados)
+print(df_final)
+
+# opcional: exportar para CSV
+df_final.to_csv("resultados_roe_roic.csv", index=False)
