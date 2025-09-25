@@ -74,6 +74,8 @@ df= df[["date","value"]]
 menor= df["value"].min()
 filtro = df["value"]==menor
 
+df.sort_values(["value"], ascending=True).head(1)
+
 
 
 # 4 - O IPEA disponibiliza uma API pública com diversas séries econômicas. 

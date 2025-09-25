@@ -83,7 +83,9 @@ df.groupby("brand_name")["price"].mean()
 
 # Lista de Exercícios sobre Concat e Merge (Myntra Dataset)
 
-#1-Crie um novo DataFrame fictício chamado df_novos_produtos com as seguintes informações e use pd.concat([df, df_novos_produtos]) para juntar ao dataset original e verifique o novo tamanho do DataFrame.
+#1-Crie um novo DataFrame fictício chamado df_novos_produtos com as seguintes informações e 
+# use pd.concat([df, df_novos_produtos]) para juntar ao dataset original e verifique o novo tamanho do DataFrame.
+
 dados_novos_produtos = {
     "brand_name": ["Myntra Basics", "Denim Pro", "Urban Style"],
     "pants_description": [
@@ -99,9 +101,13 @@ dados_novos_produtos = {
 }
 
 df_novos_produtos= pd.DataFrame(dados_novos_produtos)
-pd.concat([df,df_novos_produtos])
+df = pd.concat([df,df_novos_produtos])
 
 #2-Crie outro DataFrame df_promocoes apenas com colunas brand_name, pants_description e discount_percent para 3 novos produtos fictícios. Depois, use pd.concat([...], axis=0) e pd.concat([...], axis=1) e explique a diferença entre concatenação por linhas e concatenação por colunas.
+#Concat (juntar DataFrames):
+#Por linhas (axis=0): adiciona registros.
+#Por colunas (axis=1): adiciona novas colunas.
+
 dados_promocoes = {
     "brand_name": ["Test Brand A", "Test Brand B", "Test Brand C"],
     "pants_description": [
@@ -140,7 +146,7 @@ dados_categorias = {
     ],
     "category": ["Slim", "Regular", "Loose", "Tapered"]
 }
-
+df.columns
 df_categorias= pd.DataFrame(dados_categorias)
 pd.merge(df,df_categorias, on="pants_description", how= "inner")
 
