@@ -68,6 +68,7 @@ df.sort_values(["Booking Value"], ascending=False).head(10)
 import requests as rq
 import pandas as pd
 
+
 api = f"http://www.ipeadata.gov.br/api/odata4/Metadados"
 
 response = rq.get(api)
@@ -76,7 +77,7 @@ df= pd.DataFrame(dados)
 
 
 df["FNTSIGLA"].str.contains()
-
+df["SERNOME"].str.contains()
 
 # Descubra qual é o código da série correspondente.
 # Usando o código encontrado, acesse a API de valores: f"http://ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='{CODIGO_ENCONTRADO}')"
