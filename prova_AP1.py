@@ -113,7 +113,7 @@ headers = {'Authorization': 'Bearer {}'.format(token)}
 params = {
 'ticker': 'btc',
 'data_ini': '2023-01-01',
-'data_fim': '2023-09-01'
+'data_fim': '2025-09-01'
 }
 response = requests.get('https://laboratoriodefinancas.com/api/v1/preco-diversos', params=params, headers=headers)
 
