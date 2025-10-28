@@ -55,4 +55,59 @@ sns.regplot(x="População", y="Valor", data=df, ci=None, line_kws={'color':'red
 plt.title("Relação entre População e Despesa com Segurança")
 plt.show()
 
+###
 
+df= pd.read_csv("C:\\Documentos\\analise_dados\\dados_completos (1).csv")
+df
+
+#Primeira analise dos dados
+df.shape
+df.columns
+
+#variavel independente
+X= df[["Gasto_Seguranca", "PIB"]]
+
+#variavel dependente
+y= df["Qtd_Homicidios"]
+
+#Constante
+x = sm.add_constant(X)
+modelo = sm.OLS(y,X).fit()
+print(modelo.summary())
+
+modelo.params
+modelo.pvalues
+modelo.rsquared
+modelo.rsquared_adj
+
+# Variável independente (X)
+X = df["PIB"]
+
+# Variável dependente (y)
+y = df["Qtd_Homicidios"]
+
+# Adicionar constante (intercepto)
+X = sm.add_constant(X)
+
+# Estimar o modelo MQO (OLS)
+modelo = sm.OLS(y, X).fit()
+
+# Exibir o resumo dos resultados
+print(modelo.summary())
+
+###
+
+# Variável independente (X)
+X = df["PIB"]
+
+# Variável dependente (y)
+y = df["Gasto_Seguranca"]
+
+# Adicionar constante (intercepto)
+X = sm.add_constant(X)
+
+# Estimar o modelo MQO (OLS)
+modelo = sm.OLS(y, X).fit()
+
+# Exibir o resumo dos resultados
+print(modelo.summary())
