@@ -5,10 +5,10 @@ import pandas as pd
 df = sns.load_dataset("tips")
 
 #Histograma
-sns.histplot(data=df, x = "total_bill")
+sns.histplot(data=df, x = "Gasto_Seguranca")
 
 #Boxplot
-sns.boxplot(data=df, x = "total_bill")
+sns.boxplot(data=df, x = "Gasto_Seguranca")
 
 #Correlação
 df_numerico = df.select_dtypes(include = "number")
