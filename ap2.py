@@ -14,38 +14,6 @@ df
 df.shape
 df.columns
 
-#variavel independente
-X= df[["Gasto_Seguranca", "PIB_per_capita", "População"]]
-
-#variavel dependente
-y= df["Qtd_Homicidios"]
-
-#Constante
-x = sm.add_constant(X)
-modelo = sm.OLS(y,X).fit()
-print(modelo.summary())
-
-modelo.params
-modelo.pvalues
-modelo.rsquared
-modelo.rsquared_adj
-
-#variavel independente
-X= df[["Gasto_Seguranca","valor_icms"]]
-
-#variavel dependente
-y= df["Qtd_Homicidios"]
-
-#Constante
-x = sm.add_constant(X)
-modelo = sm.OLS(y,X).fit()
-print(modelo.summary())
-
-modelo.params
-modelo.pvalues
-modelo.rsquared
-modelo.rsquared_adj
-
 # Variável independente (X)
 X = df["Gasto_Seguranca"]
 
@@ -61,45 +29,12 @@ modelo = sm.OLS(y, X).fit()
 # Exibir o resumo dos resultados
 print(modelo.summary())
 
-#Histograma
-sns.histplot(data=df, x = "Gasto_Seguranca")
-
-#Boxplot
-sns.boxplot(data=df, x = "Gasto_Seguranca")
-
-#Correlação
-df2 = df[["Gasto_Seguranca","PIB_per_capita","Qtd_Homicidios","População"]]
-df_numerico = df2.select_dtypes(include = "number")
-df_corr = df_numerico.corr()
-sns.heatmap(df_corr, annot=True)
-
-###
-
-# Variável independente (X)
-X = df["PIB"]
-
-# Variável dependente (y)
-y = df["Gasto_Seguranca"]
-
-# Adicionar constante (intercepto)
-X = sm.add_constant(X)
-
-# Estimar o modelo MQO (OLS)
-modelo = sm.OLS(y, X).fit()
-
-# Exibir o resumo dos resultados
-print(modelo.summary())
-
-
-
-
 # Primeira etapa: regredir Gasto_Seguranca no instrumento e controles
 X_first = sm.add_constant(df[['valor_icms', 'População', 'PIB_per_capita']])
 y_first = df['Gasto_Seguranca']
 
 first_stage = sm.OLS(y_first, X_first).fit()
 print(first_stage.summary())
-
 
 # Variáveis
 y = df['Qtd_Homicidios']            # dependente
@@ -110,6 +45,7 @@ controls = df[['População', 'PIB_per_capita']]
 # Adiciona constante
 exog = sm.add_constant(controls)
 
+
 # Modelo 2SLS
 iv_model = IV2SLS(
     dependent=y,
@@ -119,6 +55,12 @@ iv_model = IV2SLS(
 ).fit(cov_type='robust')
 
 print(iv_model.summary)
+
+#Correlação
+df2 = df[["Gasto_Seguranca","PIB_per_capita","Qtd_Homicidios","População"]]
+df_numerico = df2.select_dtypes(include = "number")
+df_corr = df_numerico.corr()
+sns.heatmap(df_corr, annot=True)
 
 import numpy as np
 import statsmodels.api as sm
@@ -138,6 +80,7 @@ df['ln_homicidios'] = np.log(df['Qtd_Homicidios'] + 1)
 df['ln_gasto_seg'] = np.log(df['Gasto_Seguranca'] + 1)
 df['ln_pop'] = np.log(df['População'])
 df['ln_pibpc'] = np.log(df['PIB_per_capita'] + 1)
+
 # instrumento (pode usar log também se fizer sentido)
 df['ln_valor_icms'] = np.log(df['valor_icms'] + 1)
 
@@ -150,14 +93,26 @@ exog = sm.add_constant(controls)
 iv_log = IV2SLS(dependent=y, exog=exog, endog=endog, instruments=instr).fit(cov_type='robust')
 print(iv_log.summary)
 
-# --- 3) Rodar IV com mais de um instrumento (se você tiver outro plausível) ---
-# instr = df[['ln_valor_icms','ln_gasto_educacao']]  # exemplo
-# iv_multi = IV2SLS(dependent=y, exog=exog, endog=endog, instruments=instr).fit(cov_type='robust')
-# print(iv_multi.summary)
+# Criar variáveis ao quadrado
+df["ln_gasto_seg_quadrado"] = df["ln_gasto_seg"] ** 2
+df["ln_valor_icms_quadrado"] = df["ln_valor_icms"] ** 2
 
-import numpy as np
-import statsmodels.api as sm
-from linearmodels.iv import IV2SLS
+# Variáveis
+y = df["ln_homicidios"]
+endog = df[["ln_gasto_seg", "ln_gasto_seg_quadrado"]]   # duas endógenas
+instr = df[["ln_valor_icms", "ln_valor_icms_quadrado"]] # dois instrumentos
+controls = df[["ln_pop", "ln_pibpc"]]
+exog = sm.add_constant(controls)
+
+# Modelo IV com termos quadráticos
+iv_quad = IV2SLS(
+    dependent=y,
+    exog=exog,
+    endog=endog,
+    instruments=instr
+).fit(cov_type="robust")
+
+print(iv_quad.summary)
 
 # Criar variáveis ao quadrado
 df["ln_gasto_seg_quadrado"] = df["ln_gasto_seg"] ** 2
@@ -179,5 +134,3 @@ iv_quad = IV2SLS(
 ).fit(cov_type="robust")
 
 print(iv_quad.summary)
-
-
