@@ -4,6 +4,8 @@ import statsmodels.api as sm
 import pandas as pd
 import matplotlib.pyplot as plt
 from linearmodels.iv import IV2SLS
+import numpy as np
+
 
 ### Testes 
 
@@ -62,9 +64,6 @@ df_numerico = df2.select_dtypes(include = "number")
 df_corr = df_numerico.corr()
 sns.heatmap(df_corr, annot=True)
 
-import numpy as np
-import statsmodels.api as sm
-from linearmodels.iv import IV2SLS
 
 # --- 1) Calcular MDE aproximado a partir do SE do coeficiente IV ---
 coef = -4.851e-07   # seu coef IV
